@@ -1,7 +1,6 @@
 #ifndef LINEAR_SOLVERS_INCLUDE
 #define LINEAR_SOLVERS_INCLUDE
 
-
 #include "SparseMatrixInterface.h"
 
 inline double SquareNorm(const double* values, int dim) {
@@ -141,7 +140,7 @@ int SolveCG(SPDOperator& L,
     double delta_new = 0, delta_0;
 
     L(x, r);
-#pragma omp parallel for num_threads(threads) reduction(+ : delta_new)
+#pragma omp parallel for reduction(+ : delta_new)
     for (int i = 0; i < dim; i++)
         d[i] = r[i] = b[i] - r[i], delta_new += r[i] * r[i];
 
@@ -155,7 +154,7 @@ int SolveCG(SPDOperator& L,
     for (ii = 0; ii < iters && delta_new > eps * delta_0; ii++) {
         L(d, q);
         double dDotQ = 0;
-#pragma omp parallel for num_threads(threads) reduction(+ : dDotQ)
+#pragma omp parallel for reduction(+ : dDotQ)
         for (int i = 0; i < dim; i++) dDotQ += d[i] * q[i];
         Real alpha = Real(delta_new / dDotQ);
 
@@ -164,25 +163,25 @@ int SolveCG(SPDOperator& L,
 
         const int RESET_COUNT = 50;
         if ((ii % RESET_COUNT) == (RESET_COUNT - 1)) {
-#pragma omp parallel for num_threads(threads)
+#pragma omp parallel for
             for (int i = 0; i < dim; i++) x[i] += d[i] * alpha;
             L(x, r);
-#pragma omp parallel for num_threads(threads) reduction(+ : delta_new)
+#pragma omp parallel for reduction(+ : delta_new)
             for (int i = 0; i < dim; i++)
                 r[i] = b[i] - r[i], delta_new += r[i] * r[i];
         } else
-#pragma omp parallel for num_threads(threads) reduction(+ : delta_new)
+#pragma omp parallel for reduction(+ : delta_new)
             for (int i = 0; i < dim; i++)
                 r[i] -= q[i] * alpha, delta_new += r[i] * r[i],
                         x[i] += d[i] * alpha;
 
         Real beta = Real(delta_new / delta_old);
-#pragma omp parallel for num_threads(threads)
+#pragma omp parallel for
         for (int i = 0; i < dim; i++) d[i] = r[i] + d[i] * beta;
     }
     if (verbose) {
         L(x, r);
-#pragma omp parallel for num_threads(threads)
+#pragma omp parallel for
         for (int i = 0; i < dim; i++) r[i] -= b[i];
         printf("CG: %d %g -> %g\n", ii, SquareNorm(b, dim), SquareNorm(r, dim));
     }
@@ -212,10 +211,10 @@ int SolvePreconditionedCG(SPDOperator& L,
     double delta_new = 0, delta_0;
 
     L(x, r);
-#pragma omp parallel for num_threads(threads)
+#pragma omp parallel for
     for (int i = 0; i < dim; i++) r[i] = b[i] - r[i];
     Pinverse(r, d);
-#pragma omp parallel for num_threads(threads) reduction(+ : delta_new)
+#pragma omp parallel for reduction(+ : delta_new)
     for (int i = 0; i < dim; i++) delta_new += r[i] * d[i];
 
     delta_0 = delta_new;
@@ -227,34 +226,34 @@ int SolvePreconditionedCG(SPDOperator& L,
     for (ii = 0; ii < iters && delta_new > eps * delta_0; ii++) {
         L(d, q);
         double dDotQ = 0;
-#pragma omp parallel for num_threads(threads) reduction(+ : dDotQ)
+#pragma omp parallel for reduction(+ : dDotQ)
         for (int i = 0; i < dim; i++) dDotQ += d[i] * q[i];
         Real alpha = Real(delta_new / dDotQ);
 
         const int RESET_COUNT = 50;
-#pragma omp parallel for num_threads(threads)
+#pragma omp parallel for
         for (int i = 0; i < dim; i++) x[i] += d[i] * alpha;
         if ((ii % RESET_COUNT) == (RESET_COUNT - 1)) {
             L(x, r);
-#pragma omp parallel for num_threads(threads)
+#pragma omp parallel for
             for (int i = 0; i < dim; i++) r[i] = b[i] - r[i];
         } else
-#pragma omp parallel for num_threads(threads) reduction(+ : delta_new)
+#pragma omp parallel for reduction(+ : delta_new)
             for (int i = 0; i < dim; i++) r[i] -= q[i] * alpha;
         Pinverse(r, s);
 
         double delta_old = delta_new;
         delta_new = 0;
-#pragma omp parallel for num_threads(threads) reduction(+ : delta_new)
+#pragma omp parallel for reduction(+ : delta_new)
         for (int i = 0; i < dim; i++) delta_new += r[i] * s[i];
 
         Real beta = Real(delta_new / delta_old);
-#pragma omp parallel for num_threads(threads)
+#pragma omp parallel for
         for (int i = 0; i < dim; i++) d[i] = s[i] + d[i] * beta;
     }
     if (verbose) {
         L(x, r);
-#pragma omp parallel for num_threads(threads)
+#pragma omp parallel for
         for (int i = 0; i < dim; i++) r[i] -= b[i];
         printf("PCCG: %d %g -> %g\n", ii, SquareNorm(b, dim),
                SquareNorm(r, dim));
@@ -459,7 +458,7 @@ template <class Real, class MatrixRowIterator>
 class EigenSolverCG : public EigenSolver<Real, MatrixRowIterator> {
 #if 1
     //	Eigen::ConjugateGradient< Eigen::SparseMatrix< double > , Eigen::Lower ,
-    //Eigen::IncompleteLUT< double > > _solver;
+    // Eigen::IncompleteLUT< double > > _solver;
     Eigen::ConjugateGradient<Eigen::SparseMatrix<double>> _solver;
 #else
     Eigen::BiCGSTAB<Eigen::SparseMatrix<double>> _solver;
