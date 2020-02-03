@@ -4666,18 +4666,6 @@ public:
               unsigned int DensityDegree,
               class InData,
               class OutData>
-#if defined(_WIN32) || defined(_WIN64)
-    SparseNodeData<OutData, UIntPack<DataSigs...>> setDataField(
-            UIntPack<DataSigs...>,
-            const std::vector<PointSample>& samples,
-            const std::vector<InData>& data,
-            const DensityEstimator<DensityDegree>* density,
-            Real& pointWeightSum,
-            std::function<bool(InData, OutData&)> ConversionFunction,
-            std::function<Real(InData)> BiasFunction = [](InData) {
-                return 0.f;
-            });
-#else   // !_WIN32 && !_WIN64
     SparseNodeData<OutData, UIntPack<DataSigs...>> setDataField(
             UIntPack<DataSigs...>,
             const std::vector<PointSample>& samples,
@@ -4688,7 +4676,6 @@ public:
             std::function<Real(InData)> BiasFunction = [](InData) {
                 return (Real)0;
             });
-#endif  // _WIN32 || _WIN64
 
     template <unsigned int DataSig,
               bool CreateNodes,

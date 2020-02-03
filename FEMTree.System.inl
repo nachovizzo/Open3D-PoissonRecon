@@ -1895,47 +1895,9 @@ T FEMTree<Dim, Real>::_getInterpolationConstraintFromProlongedSolution(
     T temp = {};
     if (_isValidFEM1Node(node)) {
         int s[Dim];
-#if defined(_WIN32) || defined(_WIN64)
-#pragma message("[WARNING] You've got me MSVC")
-        auto UpdateFunction = [&](int d, int i) {
-            s[d] = (int)SupportSizes::Values[d] - 1 -
-                   (i - (int)OverlapRadii::Values[d] +
-                    (int)LeftSupportRadii::Values[d]);
-        };
-        auto ProcessFunction = [&](const FEMTreeNode* pNode) {
-            if (_isValidSpaceNode(pNode)) {
-                size_t begin, end;
-                interpolationInfo->range(pNode, begin, end);
-                for (size_t pIndex = begin; pIndex < end; pIndex++) {
-                    const DualPointInfo<Dim, Real, T, PointD> _pData =
-                            (*interpolationInfo)[pIndex];
-                    _PointEvaluatorState peState;
-                    Point<Real, Dim> p = _pData.position;
-                    LocalDepth pD;
-                    LocalOffset pOff;
-                    _localDepthAndOffset(pNode, pD, pOff);
-                    bsData.initEvaluationState(p, pD, pOff, peState);
-#ifdef SHOW_WARNINGS
-#pragma message("[WARNING] Why is this necessary?")
-#endif  // SHOW_WARNINGS
-                    const int* _off = off;
-                    CumulativeDerivativeValues<Real, Dim, PointD> values =
-                            peState.template dValues<
-                                    Real, CumulativeDerivatives<Dim, PointD>>(
-                                    _off);
-                    for (int d = 0;
-                         d < CumulativeDerivatives<Dim, PointD>::Size; d++)
-                        temp += _pData.dualValues[d] * values[d];
-                }
-            }
-        };
-#endif  // _WIN32 || _WIN64
         WindowLoop<Dim>::Run(
                 OverlapRadii() - LeftSupportRadii(),
                 OverlapRadii() - LeftSupportRadii() + SupportSizes(),
-#if defined(_WIN32) || defined(_WIN64)
-                UpdateFunction, ProcessFunction,
-#else  // !_WIN32 && !_WIN64
                 [&](int d, int i) {
                     s[d] = (int)SupportSizes::Values[d] - 1 -
                            (i - (int)OverlapRadii::Values[d] +
@@ -1954,9 +1916,6 @@ T FEMTree<Dim, Real>::_getInterpolationConstraintFromProlongedSolution(
                             LocalOffset pOff;
                             _localDepthAndOffset(pNode, pD, pOff);
                             bsData.initEvaluationState(p, pD, pOff, peState);
-#ifdef SHOW_WARNINGS
-#pragma message("[WARNING] Why is this necessary?")
-#endif  // SHOW_WARNINGS
                             const int* _off = off;
                             CumulativeDerivativeValues<Real, Dim, PointD>
                                     values = peState.template dValues<
@@ -1970,7 +1929,6 @@ T FEMTree<Dim, Real>::_getInterpolationConstraintFromProlongedSolution(
                         }
                     }
                 },
-#endif  // _WIN32 || _WIN64
                 neighbors.neighbors());
     }
     return temp;
@@ -2543,16 +2501,6 @@ int FEMTree<Dim, Real>::_getSliceMatrixAndProlongationConstraints(
         } else if (constraints)
             constraints[i] = T();
     });
-#ifdef SHOW_WARNINGS
-#pragma message("[WARNING] Why do we care if the node is not valid?")
-#endif  // SHOW_WARNINGS
-#if !defined(_WIN32) && !defined(_WIN64)
-#ifdef SHOW_WARNINGS
-#pragma message( \
-        "[WARNING] I'm not sure how expensive this system call is on non-Windows system. (You may want to comment this out.)")
-#endif  // SHOW_WARNINGS
-#endif  // !_WIN32 && !_WIN64
-    MemoryUsage();
     return 1;
 }
 

@@ -43,20 +43,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ////////////////
 #include <string.h>
 #include <sys/timeb.h>
-#ifndef WIN32
 #include <sys/time.h>
-#endif  // WIN32
 
 inline double Time(void) {
-#ifdef WIN32
-    struct _timeb t;
-    _ftime(&t);
-    return double(t.time) + double(t.millitm) / 1000.0;
-#else   // WIN32
     struct timeval t;
     gettimeofday(&t, NULL);
     return t.tv_sec + double(t.tv_usec) / 1000000;
-#endif  // WIN32
 }
 
 #include <chrono>
@@ -84,20 +76,6 @@ protected:
 ///////////////
 // I/O Stuff //
 ///////////////
-#if defined(_WIN32) || defined(_WIN64)
-const char FileSeparator = '\\';
-#else   // !_WIN
-const char FileSeparator = '/';
-#endif  // _WIN
-
-#ifndef SetTempDirectory
-#if defined(_WIN32) || defined(_WIN64)
-#define SetTempDirectory(tempDir, sz) GetTempPath((sz), (tempDir))
-#else  // !_WIN32 && !_WIN64
-#define SetTempDirectory(tempDir, sz) \
-    if (std::getenv("TMPDIR")) strcpy(tempDir, std::getenv("TMPDIR"));
-#endif  // _WIN32 || _WIN64
-#endif  // !SetTempDirectory
 
 #include <stdarg.h>
 #include <string>
@@ -290,18 +268,12 @@ void ErrorOut(const char *fileName,
 #endif  // ERROR_OUT
 
 #include <signal.h>
-#if defined(_WIN32) || defined(_WIN64)
-#else  // !WINDOWS
 #include <cxxabi.h>
 #include <execinfo.h>
 #include <unistd.h>
 #include <mutex>
-#endif  // WINDOWS
 struct StackTracer {
     static const char *exec;
-#if defined(_WIN32) || defined(_WIN64)
-    static void Trace(void) {}
-#else   // !WINDOWS
     static void Trace(void) {
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
@@ -376,7 +348,6 @@ struct StackTracer {
 
         free(messages);
     }
-#endif  // WINDOWS
 };
 const char *StackTracer::exec;
 
@@ -470,8 +441,6 @@ struct ThreadPool {
         else if (schedule == DYNAMIC)
             _ThreadFunction = _DynamicThreadFunction;
 
-        if (false) {
-        }
 #ifdef _OPENMP
         else if (_ParallelType == OPEN_MP) {
             if (schedule == STATIC)
@@ -605,17 +574,8 @@ const std::vector<std::string> ThreadPool::ScheduleNames = {"static",
 
 #include <mutex>
 
-#if defined(_WIN32) || defined(_WIN64)
-#include <windows.h>
-#endif  // _WIN32 || _WIN64
 template <typename Value>
 bool SetAtomic32(volatile Value *value, Value newValue, Value oldValue) {
-#if defined(_WIN32) || defined(_WIN64)
-    long &_oldValue = *(long *)&oldValue;
-    long &_newValue = *(long *)&newValue;
-    return InterlockedCompareExchange((long *)value, _newValue, _oldValue) ==
-           _oldValue;
-#else   // !_WIN32 && !_WIN64
     uint32_t &_oldValue = *(uint32_t *)&oldValue;
     uint32_t &_newValue = *(uint32_t *)&newValue;
     //	return __sync_bool_compare_and_swap( (uint32_t *)value , _oldValue ,
@@ -623,41 +583,18 @@ bool SetAtomic32(volatile Value *value, Value newValue, Value oldValue) {
     return __atomic_compare_exchange_n((uint32_t *)value, (uint32_t *)&oldValue,
                                        _newValue, false, __ATOMIC_SEQ_CST,
                                        __ATOMIC_SEQ_CST);
-#endif  // _WIN32 || _WIN64
 }
 template <typename Value>
 bool SetAtomic64(volatile Value *value, Value newValue, Value oldValue) {
-#if defined(_WIN32) || defined(_WIN64)
-    __int64 &_oldValue = *(__int64 *)&oldValue;
-    __int64 &_newValue = *(__int64 *)&newValue;
-    return InterlockedCompareExchange64((__int64 *)value, _newValue,
-                                        _oldValue) == _oldValue;
-#else   // !_WIN32 && !_WIN64
     uint64_t &_oldValue = *(uint64_t *)&oldValue;
     uint64_t &_newValue = *(uint64_t *)&newValue;
-    //	return __sync_bool_compare_and_swap ( (uint64_t *)&value , _oldValue ,
-    //_newValue );
     return __atomic_compare_exchange_n((uint64_t *)value, (uint64_t *)&oldValue,
                                        _newValue, false, __ATOMIC_SEQ_CST,
                                        __ATOMIC_SEQ_CST);
-#endif  // _WIN32 || _WIN64
 }
 
 template <typename Number>
 void AddAtomic32(Number &a, Number b) {
-#if 0
-	Number current = a;
-	Number sum = current+b;
-	while( !SetAtomic32( &a , sum , current ) ) current = a , sum = a+b;
-#else
-#if defined(_WIN32) || defined(_WIN64)
-    Number current = a;
-    Number sum = current + b;
-    long &_current = *(long *)&current;
-    long &_sum = *(long *)&sum;
-    while (InterlockedCompareExchange((long *)&a, _sum, _current) != _current)
-        current = a, sum = a + b;
-#else   // !_WIN32 && !_WIN64
     Number current = a;
     Number sum = current + b;
     uint32_t &_current = *(uint32_t *)&current;
@@ -665,35 +602,13 @@ void AddAtomic32(Number &a, Number b) {
     while (__sync_val_compare_and_swap((uint32_t *)&a, _current, _sum) !=
            _current)
         current = a, sum = a + b;
-#endif  // _WIN32 || _WIN64
-#endif
 }
 
 template <typename Number>
 void AddAtomic64(Number &a, Number b) {
-#if 1
     Number current = a;
     Number sum = current + b;
     while (!SetAtomic64(&a, sum, current)) current = a, sum = a + b;
-#else
-#if defined(_WIN32) || defined(_WIN64)
-    Number current = a;
-    Number sum = current + b;
-    __int64 &_current = *(__int64 *)&current;
-    __int64 &_sum = *(__int64 *)&sum;
-    while (InterlockedCompareExchange64((__int64 *)&a, _sum, _current) !=
-           _current)
-        current = a, sum = a + b;
-#else   // !_WIN32 && !_WIN64
-    Number current = a;
-    Number sum = current + b;
-    uint64_t &_current = *(uint64_t *)&current;
-    uint64_t &_sum = *(uint64_t *)&sum;
-    while (__sync_val_compare_and_swap((uint64_t *)&a, _current, _sum) !=
-           _current)
-        current = a, sum = a + b;
-#endif  // _WIN32 || _WIN64
-#endif
 }
 
 template <typename Value>
@@ -800,42 +715,6 @@ struct NumberWrapper {
     explicit operator Number() const { return n; }
 };
 
-#if 0
-template< typename Number , typename Type , size_t I >
-struct std::atomic< NumberWrapper< Number , Type , I > >
-{
-	typedef Number type;
-
-	std::atomic< Number > n;
-
-	atomic( Number _n=0 ) : n(_n){}
-	atomic( const std::atomic< Number > &_n ) : n(_n){}
-	atomic( NumberWrapper< Number , Type , I > _n ) : n(_n.n){}
-	atomic &operator = ( Number _n ){ n = _n ; return *this; }
-//	atomic &operator = ( const atomic &a ){ n = a.n ; return *this; }
-//	atomic &operator = ( const NumberWrapper< Number , Type , I > &_n ){ n = _n.n ; return *this; }
-	atomic operator + ( atomic _n ) const { return atomic( n + _n.n ); }
-	atomic operator - ( atomic _n ) const { return atomic( n * _n.n ); }
-	atomic operator * ( atomic _n ) const { return atomic( n * _n.n ); }
-	atomic operator / ( atomic _n ) const { return atomic( n / _n.n ); }
-	atomic &operator += ( atomic _n ){ n += _n.n ; return *this; }
-	atomic &operator -= ( atomic _n ){ n -= _n.n ; return *this; }
-	atomic &operator *= ( atomic _n ){ n *= _n.n ; return *this; }
-	atomic &operator /= ( atomic _n ){ n /= _n.n ; return *this; }
-	bool operator == ( atomic _n ) const { return n==_n.n; }
-	bool operator != ( atomic _n ) const { return n!=_n.n; }
-	bool operator <  ( atomic _n ) const { return n<_n.n; }
-	bool operator >  ( atomic _n ) const { return n>_n.n; }
-	bool operator <= ( atomic _n ) const { return n<=_n.n; }
-	bool operator >= ( atomic _n ) const { return n>=_n.n; }
-	atomic operator ++ ( int ) { atomic _n(n) ; n++ ; return _n; }
-	atomic operator -- ( int ) { atomic _n(n) ; n-- ; return _n; }
-	atomic &operator ++ ( void ) { n++ ; return *this; }
-	atomic &operator -- ( void ) { n-- ; return *this; }
-	operator NumberWrapper< Number , Type , I >() const { return NumberWrapper< Number , Type , I >(n); }
-	explicit operator Number () const { return n; }
-};
-#endif
 
 namespace std {
 template <typename Number, typename Type, size_t I>
@@ -875,23 +754,6 @@ struct MemoryInfo {
     static size_t Usage(void) { return getCurrentRSS(); }
     static int PeakMemoryUsageMB(void) { return (int)(getPeakRSS() >> 20); }
 };
-#if defined(_WIN32) || defined(_WIN64)
-#include <Psapi.h>
-#include <Windows.h>
-inline void SetPeakMemoryMB(size_t sz) {
-    sz <<= 20;
-    SIZE_T peakMemory = sz;
-    HANDLE h = CreateJobObject(NULL, NULL);
-    AssignProcessToJobObject(h, GetCurrentProcess());
-
-    JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = {0};
-    jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_JOB_MEMORY;
-    jeli.JobMemoryLimit = peakMemory;
-    if (!SetInformationJobObject(h, JobObjectExtendedLimitInformation, &jeli,
-                                 sizeof(jeli)))
-        WARN("Failed to set memory limit");
-}
-#else  // !_WIN32 && !_WIN64
 #include <sys/resource.h>
 #include <sys/time.h>
 inline void SetPeakMemoryMB(size_t sz) {
@@ -901,8 +763,6 @@ inline void SetPeakMemoryMB(size_t sz) {
     rl.rlim_cur = sz;
     setrlimit(RLIMIT_AS, &rl);
 }
-#endif  // _WIN32 || _WIN64
-
 /*
  * Author:  David Robert Nadeau
  * Site:    http://NadeauSoftware.com/
@@ -910,33 +770,9 @@ inline void SetPeakMemoryMB(size_t sz) {
  *          http://creativecommons.org/licenses/by/3.0/deed.en_US
  */
 
-#if defined(_WIN32) || defined(_WIN64)
-#include <psapi.h>
-#include <windows.h>
-
-#elif defined(__unix__) || defined(__unix) || defined(unix) || \
-        (defined(__APPLE__) && defined(__MACH__))
 #include <sys/resource.h>
 #include <unistd.h>
-
-#if defined(__APPLE__) && defined(__MACH__)
-#include <mach/mach.h>
-
-#elif (defined(_AIX) || defined(__TOS__AIX__)) || \
-        (defined(__sun__) || defined(__sun) ||    \
-         defined(sun) && (defined(__SVR4) || defined(__svr4__)))
-#include <fcntl.h>
-#include <procfs.h>
-
-#elif defined(__linux__) || defined(__linux) || defined(linux) || \
-        defined(__gnu_linux__)
 #include <stdio.h>
-
-#endif
-
-#else
-#error "Cannot define getPeakRSS( ) or getCurrentRSS( ) for an unknown OS."
-#endif
 
 /**
  * Returns the peak (maximum so far) resident set size (physical
@@ -944,42 +780,9 @@ inline void SetPeakMemoryMB(size_t sz) {
  * determined on this OS.
  */
 inline size_t getPeakRSS() {
-#if defined(_WIN32)
-    /* Windows -------------------------------------------------- */
-    PROCESS_MEMORY_COUNTERS info;
-    GetProcessMemoryInfo(GetCurrentProcess(), &info, sizeof(info));
-    return (size_t)info.PeakWorkingSetSize;
-
-#elif (defined(_AIX) || defined(__TOS__AIX__)) || \
-        (defined(__sun__) || defined(__sun) ||    \
-         defined(sun) && (defined(__SVR4) || defined(__svr4__)))
-    /* AIX and Solaris ------------------------------------------ */
-    struct psinfo psinfo;
-    int fd = -1;
-    if ((fd = open("/proc/self/psinfo", O_RDONLY)) == -1)
-        return (size_t)0L; /* Can't open? */
-    if (read(fd, &psinfo, sizeof(psinfo)) != sizeof(psinfo)) {
-        close(fd);
-        return (size_t)0L; /* Can't read? */
-    }
-    close(fd);
-    return (size_t)(psinfo.pr_rssize * 1024L);
-
-#elif defined(__unix__) || defined(__unix) || defined(unix) || \
-        (defined(__APPLE__) && defined(__MACH__))
-    /* BSD, Linux, and OSX -------------------------------------- */
     struct rusage rusage;
     getrusage(RUSAGE_SELF, &rusage);
-#if defined(__APPLE__) && defined(__MACH__)
-    return (size_t)rusage.ru_maxrss;
-#else
     return (size_t)(rusage.ru_maxrss * 1024L);
-#endif
-
-#else
-    /* Unknown OS ----------------------------------------------- */
-    return (size_t)0L; /* Unsupported. */
-#endif
 }
 
 /**
@@ -987,24 +790,6 @@ inline size_t getPeakRSS() {
  * in bytes, or zero if the value cannot be determined on this OS.
  */
 inline size_t getCurrentRSS() {
-#if defined(_WIN32) || defined(_WIN64)
-    /* Windows -------------------------------------------------- */
-    PROCESS_MEMORY_COUNTERS info;
-    GetProcessMemoryInfo(GetCurrentProcess(), &info, sizeof(info));
-    return (size_t)info.WorkingSetSize;
-
-#elif defined(__APPLE__) && defined(__MACH__)
-    /* OSX ------------------------------------------------------ */
-    struct mach_task_basic_info info;
-    mach_msg_type_number_t infoCount = MACH_TASK_BASIC_INFO_COUNT;
-    if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info,
-                  &infoCount) != KERN_SUCCESS)
-        return (size_t)0L; /* Can't access? */
-    return (size_t)info.resident_size;
-
-#elif defined(__linux__) || defined(__linux) || defined(linux) || \
-        defined(__gnu_linux__)
-    /* Linux ---------------------------------------------------- */
     long rss = 0L;
     FILE *fp = NULL;
     if ((fp = fopen("/proc/self/statm", "r")) == NULL)
@@ -1016,9 +801,6 @@ inline size_t getCurrentRSS() {
     fclose(fp);
     return (size_t)rss * (size_t)sysconf(_SC_PAGESIZE);
 
-#else
-    /* AIX, BSD, Solaris, and Unknown OS ------------------------ */
-    return (size_t)0L; /* Unsupported. */
-#endif
 }
+
 #endif  // MY_MISCELLANY_INCLUDED

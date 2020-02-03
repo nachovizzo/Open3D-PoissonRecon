@@ -36,9 +36,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <unordered_map>
 #include <vector>
-#ifdef _WIN32
-#include <io.h>
-#endif  // _WIN32
 
 template <class Real>
 Real Random(void);
@@ -785,12 +782,7 @@ public:
                 sprintf(_fileName, "%sXXXXXX", fileHeader);
             else
                 strcpy(_fileName, "XXXXXX");
-#ifdef _WIN32
-            _mktemp(_fileName);
-            _fp = fopen(_fileName, "w+b");
-#else   // !_WIN32
             _fp = fdopen(mkstemp(_fileName), "w+b");
-#endif  // _WIN32
             tempFile = true;
         }
         if (!_fp) ERROR_OUT("Failed to open file: ", _fileName);

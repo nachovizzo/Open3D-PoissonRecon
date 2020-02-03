@@ -32,25 +32,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-#ifdef _WIN64
-#define ASSERT(x)                 \
-    {                             \
-        if (!(x)) __debugbreak(); \
-    }
-#else  // !_WIN64
-#ifdef _WIN32
-#define ASSERT(x)                   \
-    {                               \
-        if (!(x)) _asm { int 0x03 } \
-    }
-#else  // !_WIN32
-#define ASSERT(x)          \
-    {                      \
-        if (!(x)) exit(0); \
-    }
-#endif  // _WIN32
-#endif  // _WIN64
-
 // Code from http://stackoverflow.com
 inline void* aligned_malloc(size_t size, size_t align) {
     // Align enough for the data, the alignment padding, and room to store a

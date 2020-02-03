@@ -49,7 +49,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define BMP_BI_SIZE 40
 /* packed size of info header */
 
-#ifndef _WIN32
 typedef struct tagBITMAPFILEHEADER {
     unsigned short int bfType;
     unsigned int bfSize;
@@ -71,7 +70,6 @@ typedef struct tagBITMAPINFOHEADER {
     unsigned int biClrUsed;
     unsigned int biClrImportant;
 } BITMAPINFOHEADER;
-#endif  // !_WIN32
 
 struct BMPInfo {
     FILE* fp;

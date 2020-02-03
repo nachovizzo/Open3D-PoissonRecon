@@ -31,9 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <string.h>
 #include <vector>
-#ifdef _WIN32
-#include <windows.h>
-#endif  // _WIN32
 #include <stddef.h>
 #include <cstddef>
 #include <type_traits>
