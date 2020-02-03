@@ -42,20 +42,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thread>
 #include <vector>
 
-class ThreadPool {
-public:
-    template <typename... Functions>
-    static void ParallelSections(const Functions &... functions) {
-        std::vector<std::future<void>> futures(sizeof...(Functions));
-        _ParallelSections(&futures[0], functions...);
-        for (size_t t = 0; t < futures.size(); t++) futures[t].get();
-    }
+struct ThreadPool {
+    static const size_t chunk_size = 128;
+    static bool _Close;
+    static volatile unsigned int _RemainingTasks;
+    static std::condition_variable _WaitingForWorkOrClose, _DoneWithWork;
+    static std::vector<std::thread> _Threads;
+    static std::function<void(unsigned int)> _ThreadFunction;
 
     static void Parallel_for(size_t begin,
                              size_t end,
                              const std::function<void(unsigned int, size_t)>
                                      &iterationFunction) {
-        if (begin >= end) return;
+        if (begin >= end) {
+            return;
+        }
+
         size_t range = end - begin;
         size_t chunks = (range + chunk_size - 1) / chunk_size;
         unsigned int threads = (unsigned int)NumThreads();
@@ -63,7 +65,9 @@ public:
         index.store(0);
 
         if (range < chunk_size || threads == 1) {
-            for (size_t i = begin; i < end; i++) iterationFunction(0, i);
+            for (size_t i = begin; i < end; i++) {
+                iterationFunction(0, i);
+            }
             return;
         }
 
@@ -73,33 +77,16 @@ public:
             const size_t _end = std::min<size_t>(end, _begin + chunk_size);
             for (size_t i = _begin; i < _end; i++) iterationFunction(thread, i);
         };
-        auto _StaticThreadFunction = [&_ChunkFunction, chunks,
-                                      threads](unsigned int thread) {
-            for (size_t chunk = thread; chunk < chunks; chunk += threads)
-                _ChunkFunction(thread, chunk);
-        };
-        auto _DynamicThreadFunction = [&_ChunkFunction, chunks,
-                                       &index](unsigned int thread) {
+        _ThreadFunction = [&_ChunkFunction, chunks,
+                           &index](unsigned int thread) {
             size_t chunk;
             while ((chunk = index.fetch_add(1)) < chunks)
                 _ChunkFunction(thread, chunk);
         };
 
-        if (schedule == STATIC)
-            _ThreadFunction = _StaticThreadFunction;
-        else if (schedule == DYNAMIC)
-            _ThreadFunction = _DynamicThreadFunction;
-
-        if (schedule == STATIC) {
-#pragma omp parallel for num_threads(threads) schedule(static, 1)
-            for (int c = 0; c < chunks; c++) {
-                _ChunkFunction(omp_get_thread_num(), c);
-            }
-        } else if (schedule == DYNAMIC) {
-#pragma omp parallel for num_threads(threads) schedule(dynamic, 1)
-            for (int c = 0; c < chunks; c++) {
-                _ChunkFunction(omp_get_thread_num(), c);
-            }
+#pragma omp parallel
+        for (int c = 0; c < chunks; c++) {
+            _ChunkFunction(omp_get_thread_num(), c);
         }
     }
 
@@ -119,6 +106,7 @@ public:
         numThreads--;
         _Threads.resize(numThreads);
     }
+
     static void Terminate(void) {
         if (_Threads.size() && !_Close) {
             _Close = true;
@@ -129,15 +117,19 @@ public:
         }
     }
 
-private:
-    ThreadPool(const ThreadPool &) {}
-    ThreadPool &operator=(const ThreadPool &) { return *this; }
+    template <typename... Functions>
+    static void ParallelSections(const Functions &... functions) {
+        std::vector<std::future<void>> futures(sizeof...(Functions));
+        _ParallelSections(&futures[0], functions...);
+        for (size_t t = 0; t < futures.size(); t++) futures[t].get();
+    }
 
     template <typename Function>
     static void _ParallelSections(std::future<void> *futures,
                                   const Function &function) {
         *futures = std::async(std::launch::async, function);
     }
+
     template <typename Function, typename... Functions>
     static void _ParallelSections(std::future<void> *futures,
                                   const Function &function,
@@ -145,33 +137,6 @@ private:
         *futures = std::async(std::launch::async, function);
         _ParallelSections(futures + 1, functions...);
     }
-    static void _ThreadInitFunction(unsigned int thread) {
-        // Wait for the first job to come in
-        std::unique_lock<std::mutex> lock(_Mutex);
-        _WaitingForWorkOrClose.wait(lock);
-        while (!_Close) {
-            lock.unlock();
-            // do the job
-            _ThreadFunction(thread);
-
-            // Notify and wait for the next job
-            lock.lock();
-            _RemainingTasks--;
-            if (!_RemainingTasks) _DoneWithWork.notify_all();
-            _WaitingForWorkOrClose.wait(lock);
-        }
-    }
-
-    enum ScheduleType { STATIC, DYNAMIC };
-    static const ScheduleType schedule = ScheduleType::DYNAMIC;
-    static const size_t chunk_size = 128;
-
-    static bool _Close;
-    static volatile unsigned int _RemainingTasks;
-    static std::mutex _Mutex;
-    static std::condition_variable _WaitingForWorkOrClose, _DoneWithWork;
-    static std::vector<std::thread> _Threads;
-    static std::function<void(unsigned int)> _ThreadFunction;
 };
 
 #endif  // THREADPOOL_H_
