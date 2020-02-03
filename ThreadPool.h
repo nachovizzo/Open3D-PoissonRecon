@@ -84,8 +84,8 @@ struct ThreadPool {
                 _ChunkFunction(thread, chunk);
         };
 
-#pragma omp parallel
-        for (int c = 0; c < chunks; c++) {
+#pragma omp parallel for
+        for (size_t c = 0; c < chunks; c++) {
             _ChunkFunction(omp_get_thread_num(), c);
         }
     }
@@ -138,5 +138,13 @@ struct ThreadPool {
         _ParallelSections(futures + 1, functions...);
     }
 };
+
+// Hack to avoid using the linker for now
+bool ThreadPool::_Close;
+volatile unsigned int ThreadPool::_RemainingTasks;
+std::condition_variable ThreadPool::_WaitingForWorkOrClose;
+std::condition_variable ThreadPool::_DoneWithWork;
+std::vector<std::thread> ThreadPool::_Threads;
+std::function<void(unsigned int)> ThreadPool::_ThreadFunction;
 
 #endif  // THREADPOOL_H_
