@@ -30,41 +30,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef THREADPOOL_H_
 #define THREADPOOL_H_
 
-//////////////////
-// OpenMP Stuff //
-//////////////////
-#ifdef _OPENMP
-#include <omp.h>
-#endif  // _OPENMP
-
 #include "MyMiscellany.h"
 
+#include <omp.h>
+
+#include <algorithm>
 #include <atomic>
 #include <condition_variable>
 #include <future>
+#include <string>
 #include <thread>
+#include <vector>
 
-////////////////////
-// MKThread Stuff //
-////////////////////
-
-struct ThreadPool {
-    enum ParallelType {
-#ifdef _OPENMP
-        OPEN_MP,
-#endif  // _OPENMP
-        THREAD_POOL,
-        ASYNC,
-        NONE
-    };
-    static const std::vector<std::string> ParallelNames;
-
-    enum ScheduleType { STATIC, DYNAMIC };
-    static const std::vector<std::string> ScheduleNames;
-
-    static size_t DefaultChunkSize;
-    static ScheduleType DefaultSchedule;
-
+class ThreadPool {
+public:
     template <typename... Functions>
     static void ParallelSections(const Functions &... functions) {
         std::vector<std::future<void>> futures(sizeof...(Functions));
@@ -72,28 +51,26 @@ struct ThreadPool {
         for (size_t t = 0; t < futures.size(); t++) futures[t].get();
     }
 
-    static void Parallel_for(
-            size_t begin,
-            size_t end,
-            const std::function<void(unsigned int, size_t)> &iterationFunction,
-            ScheduleType schedule = DefaultSchedule,
-            size_t chunkSize = DefaultChunkSize) {
+    static void Parallel_for(size_t begin,
+                             size_t end,
+                             const std::function<void(unsigned int, size_t)>
+                                     &iterationFunction) {
         if (begin >= end) return;
         size_t range = end - begin;
-        size_t chunks = (range + chunkSize - 1) / chunkSize;
+        size_t chunks = (range + chunk_size - 1) / chunk_size;
         unsigned int threads = (unsigned int)NumThreads();
         std::atomic<size_t> index;
         index.store(0);
 
-        if (range < chunkSize || _ParallelType == NONE || threads == 1) {
+        if (range < chunk_size || threads == 1) {
             for (size_t i = begin; i < end; i++) iterationFunction(0, i);
             return;
         }
 
-        auto _ChunkFunction = [&iterationFunction, begin, end, chunkSize](
+        auto _ChunkFunction = [&iterationFunction, begin, end, chunk_size](
                                       unsigned int thread, size_t chunk) {
-            const size_t _begin = begin + chunkSize * chunk;
-            const size_t _end = std::min<size_t>(end, _begin + chunkSize);
+            const size_t _begin = begin + chunk_size * chunk;
+            const size_t _end = std::min<size_t>(end, _begin + chunk_size);
             for (size_t i = _begin; i < _end; i++) iterationFunction(thread, i);
         };
         auto _StaticThreadFunction = [&_ChunkFunction, chunks,
@@ -113,38 +90,15 @@ struct ThreadPool {
         else if (schedule == DYNAMIC)
             _ThreadFunction = _DynamicThreadFunction;
 
-#ifdef _OPENMP
-        else if (_ParallelType == OPEN_MP) {
-            if (schedule == STATIC)
+        if (schedule == STATIC) {
 #pragma omp parallel for num_threads(threads) schedule(static, 1)
-                for (int c = 0; c < chunks; c++)
-                    _ChunkFunction(omp_get_thread_num(), c);
-            else if (schedule == DYNAMIC)
+            for (int c = 0; c < chunks; c++) {
+                _ChunkFunction(omp_get_thread_num(), c);
+            }
+        } else if (schedule == DYNAMIC) {
 #pragma omp parallel for num_threads(threads) schedule(dynamic, 1)
-                for (int c = 0; c < chunks; c++)
-                    _ChunkFunction(omp_get_thread_num(), c);
-        }
-#endif  // _OPENMP
-        else if (_ParallelType == ASYNC) {
-            static std::vector<std::future<void>> futures;
-            futures.resize(threads - 1);
-            for (unsigned int t = 1; t < threads; t++)
-                futures[t - 1] =
-                        std::async(std::launch::async, _ThreadFunction, t);
-            _ThreadFunction(0);
-            for (unsigned int t = 1; t < threads; t++) futures[t - 1].get();
-        } else if (_ParallelType == THREAD_POOL) {
-            unsigned int targetTasks = 0;
-            if (!SetAtomic(&_RemainingTasks, threads - 1, targetTasks)) {
-                WARN("nested for loop, reverting to serial");
-                for (size_t i = begin; i < end; i++) iterationFunction(0, i);
-            } else {
-                _WaitingForWorkOrClose.notify_all();
-                {
-                    std::unique_lock<std::mutex> lock(_Mutex);
-                    _DoneWithWork.wait(
-                            lock, [&](void) { return _RemainingTasks == 0; });
-                }
+            for (int c = 0; c < chunks; c++) {
+                _ChunkFunction(omp_get_thread_num(), c);
             }
         }
     }
@@ -154,9 +108,7 @@ struct ThreadPool {
     }
 
     static void Init(
-            ParallelType parallelType,
             unsigned int numThreads = std::thread::hardware_concurrency()) {
-        _ParallelType = parallelType;
         if (_Threads.size() && !_Close) {
             _Close = true;
             _WaitingForWorkOrClose.notify_all();
@@ -166,12 +118,6 @@ struct ThreadPool {
         _Close = true;
         numThreads--;
         _Threads.resize(numThreads);
-        if (_ParallelType == THREAD_POOL) {
-            _RemainingTasks = 0;
-            _Close = false;
-            for (unsigned int t = 0; t < numThreads; t++)
-                _Threads[t] = std::thread(_ThreadInitFunction, t);
-        }
     }
     static void Terminate(void) {
         if (_Threads.size() && !_Close) {
@@ -216,32 +162,16 @@ private:
         }
     }
 
+    enum ScheduleType { STATIC, DYNAMIC };
+    static const ScheduleType schedule = ScheduleType::DYNAMIC;
+    static const size_t chunk_size = 128;
+
     static bool _Close;
     static volatile unsigned int _RemainingTasks;
     static std::mutex _Mutex;
     static std::condition_variable _WaitingForWorkOrClose, _DoneWithWork;
     static std::vector<std::thread> _Threads;
     static std::function<void(unsigned int)> _ThreadFunction;
-    static ParallelType _ParallelType;
 };
-
-size_t ThreadPool::DefaultChunkSize = 128;
-ThreadPool::ScheduleType ThreadPool::DefaultSchedule = ThreadPool::DYNAMIC;
-bool ThreadPool::_Close;
-volatile unsigned int ThreadPool::_RemainingTasks;
-std::mutex ThreadPool::_Mutex;
-std::condition_variable ThreadPool::_WaitingForWorkOrClose;
-std::condition_variable ThreadPool::_DoneWithWork;
-std::vector<std::thread> ThreadPool::_Threads;
-std::function<void(unsigned int)> ThreadPool::_ThreadFunction;
-ThreadPool::ParallelType ThreadPool::_ParallelType;
-
-const std::vector<std::string> ThreadPool::ParallelNames = {
-#ifdef _OPENMP
-        "open mp",
-#endif  // _OPENMP
-        "thread pool", "async", "none"};
-const std::vector<std::string> ThreadPool::ScheduleNames = {"static",
-                                                            "dynamic"};
 
 #endif  // THREADPOOL_H_
