@@ -71,7 +71,7 @@ struct ThreadPool {
             return;
         }
 
-        auto _ChunkFunction = [&iterationFunction, begin, end, chunk_size](
+        auto _ChunkFunction = [&iterationFunction, begin, end](
                                       unsigned int thread, size_t chunk) {
             const size_t _begin = begin + chunk_size * chunk;
             const size_t _end = std::min<size_t>(end, _begin + chunk_size);
@@ -80,8 +80,9 @@ struct ThreadPool {
         _ThreadFunction = [&_ChunkFunction, chunks,
                            &index](unsigned int thread) {
             size_t chunk;
-            while ((chunk = index.fetch_add(1)) < chunks)
+            while ((chunk = index.fetch_add(1)) < chunks) {
                 _ChunkFunction(thread, chunk);
+            }
         };
 
 #pragma omp parallel for
