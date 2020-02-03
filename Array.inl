@@ -28,12 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <emmintrin.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
-#include <vector>
-#include <stddef.h>
 #include <cstddef>
 #include <type_traits>
+#include <vector>
 
 template <class C>
 class Array {
@@ -41,7 +41,6 @@ class Array {
     friend class Array;
     void _assertBounds(std::ptrdiff_t idx) const {
         if (idx < min || idx >= max) {
-            StackTracer::Trace();
             ERROR_OUT("Array index out-of-bounds: ", min, " <= ", idx, " < ",
                       max);
         }
