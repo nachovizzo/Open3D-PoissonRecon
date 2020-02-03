@@ -31,6 +31,34 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "PreProcessor.h"
 
+#include <cxxabi.h>
+#include <execinfo.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/resource.h>
+#include <sys/time.h>
+#include <sys/timeb.h>
+#include <unistd.h>
+
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <cstdio>
+#include <ctime>
+#include <exception>
+#include <functional>
+#include <future>
+#include <iostream>
+#include <memory>
+#include <mutex>
+#include <sstream>
+#include <string>
+#include <thread>
+#include <vector>
+
 //////////////////
 // OpenMP Stuff //
 //////////////////
@@ -41,19 +69,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ////////////////
 // Time Stuff //
 ////////////////
-#include <string.h>
-#include <sys/timeb.h>
-#include <sys/time.h>
 
 inline double Time(void) {
     struct timeval t;
     gettimeofday(&t, NULL);
     return t.tv_sec + double(t.tv_usec) / 1000000;
 }
-
-#include <chrono>
-#include <cstdio>
-#include <ctime>
 struct Timer {
     Timer(void) {
         _startCPUClock = std::clock(),
@@ -77,9 +98,6 @@ protected:
 // I/O Stuff //
 ///////////////
 
-#include <stdarg.h>
-#include <string>
-#include <vector>
 struct MessageWriter {
     char *outputFile;
     bool echoSTDOUT;
@@ -158,11 +176,7 @@ struct MessageWriter {
 /////////////////////////////////////
 // Exception, Warnings, and Errors //
 /////////////////////////////////////
-#include <algorithm>
-#include <exception>
-#include <iostream>
-#include <sstream>
-#include <string>
+
 namespace MKExceptions {
 template <typename... Arguments>
 void _AddToMessageStream(std::stringstream &stream, Arguments... arguments);
@@ -267,11 +281,6 @@ void ErrorOut(const char *fileName,
     MKExceptions::ErrorOut(__FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
 #endif  // ERROR_OUT
 
-#include <signal.h>
-#include <cxxabi.h>
-#include <execinfo.h>
-#include <unistd.h>
-#include <mutex>
 struct StackTracer {
     static const char *exec;
     static void Trace(void) {
@@ -365,16 +374,6 @@ void AddAtomic(Data &a, Data b);
 ////////////////////
 // MKThread Stuff //
 ////////////////////
-#include <atomic>
-#include <chrono>
-#include <condition_variable>
-#include <functional>
-#include <future>
-#include <mutex>
-#include <thread>
-#include <vector>
-
-#include <memory>
 
 struct ThreadPool {
     enum ParallelType {
@@ -572,8 +571,6 @@ const std::vector<std::string> ThreadPool::ParallelNames = {
 const std::vector<std::string> ThreadPool::ScheduleNames = {"static",
                                                             "dynamic"};
 
-#include <mutex>
-
 template <typename Value>
 bool SetAtomic32(volatile Value *value, Value newValue, Value oldValue) {
     uint32_t &_oldValue = *(uint32_t *)&oldValue;
@@ -648,7 +645,6 @@ void AddAtomic(Data &a, Data b) {
 /////////////////////////
 // NumberWrapper Stuff //
 /////////////////////////
-#include <vector>
 struct EmptyNumberWrapperClass {};
 
 template <typename Number,
@@ -715,7 +711,6 @@ struct NumberWrapper {
     explicit operator Number() const { return n; }
 };
 
-
 namespace std {
 template <typename Number, typename Type, size_t I>
 struct hash<NumberWrapper<Number, Type, I>> {
@@ -732,8 +727,10 @@ struct VectorWrapper : public std::vector<Data> {
     VectorWrapper(size_t sz, Data d) : std::vector<Data>(sz, d) {}
 
     //	void resize( _NumberWrapper n )         { std::vector< Data >::resize(
-    //(size_t)(_NumberWrapper::type)n ); } 	void resize( _NumberWrapper n , Data
-    //d ){ std::vector< Data >::resize( (size_t)(_NumberWrapper::type)n , d ); }
+    //(size_t)(_NumberWrapper::type)n ); } 	void resize( _NumberWrapper n ,
+    // Data d ){ std::vector< Data >::resize( (size_t)(_NumberWrapper::type)n ,
+    // d
+    // ); }
 
     typename std::vector<Data>::reference operator[](_NumberWrapper n) {
         return std::vector<Data>::operator[](n.n);
@@ -754,8 +751,6 @@ struct MemoryInfo {
     static size_t Usage(void) { return getCurrentRSS(); }
     static int PeakMemoryUsageMB(void) { return (int)(getPeakRSS() >> 20); }
 };
-#include <sys/resource.h>
-#include <sys/time.h>
 inline void SetPeakMemoryMB(size_t sz) {
     sz <<= 20;
     struct rlimit rl;
@@ -769,10 +764,6 @@ inline void SetPeakMemoryMB(size_t sz) {
  * License: Creative Commons Attribution 3.0 Unported License
  *          http://creativecommons.org/licenses/by/3.0/deed.en_US
  */
-
-#include <sys/resource.h>
-#include <unistd.h>
-#include <stdio.h>
 
 /**
  * Returns the peak (maximum so far) resident set size (physical
@@ -800,7 +791,6 @@ inline size_t getCurrentRSS() {
     }
     fclose(fp);
     return (size_t)rss * (size_t)sysconf(_SC_PAGESIZE);
-
 }
 
 #endif  // MY_MISCELLANY_INCLUDED
