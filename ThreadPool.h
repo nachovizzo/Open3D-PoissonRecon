@@ -30,15 +30,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef THREADPOOL_H_
 #define THREADPOOL_H_
 
-#include "MyMiscellany.h"
-
 #include <omp.h>
 
 #include <algorithm>
 #include <atomic>
 #include <condition_variable>
 #include <future>
-#include <string>
 #include <thread>
 #include <vector>
 
@@ -75,7 +72,9 @@ struct ThreadPool {
                                       unsigned int thread, size_t chunk) {
             const size_t _begin = begin + chunk_size * chunk;
             const size_t _end = std::min<size_t>(end, _begin + chunk_size);
-            for (size_t i = _begin; i < _end; i++) iterationFunction(thread, i);
+            for (size_t i = _begin; i < _end; i++) {
+                iterationFunction(thread, i);
+            }
         };
         _ThreadFunction = [&_ChunkFunction, chunks,
                            &index](unsigned int thread) {
