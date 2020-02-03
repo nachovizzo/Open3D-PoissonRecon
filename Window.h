@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Allocator.h"
 #include "Array.h"
 #include "MyMiscellany.h"
+#include "ThreadPool.h"
 
 //////////////////////////////////////////////////////////
 // Some basic functionality for integer parameter packs //

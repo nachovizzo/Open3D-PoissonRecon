@@ -60,6 +60,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PointStream.h"
 #include "RegularTree.h"
 #include "SparseMatrix.h"
+#include "ThreadPool.h"
 
 #ifdef BIG_DATA
 // The integer type used for indexing the nodes in the octree
@@ -579,11 +580,11 @@ unsigned int* ReadDenseNodeDataSignatures(FILE* fp, unsigned int& dim) {
 
 // The Derivative method needs static members:
 //		Dim: the dimensionality of the space in which derivatives are
-//evaluated 		Size: the total number of derivatives
+// evaluated 		Size: the total number of derivatives
 // and static methods:
 //		Index: takes the number of partials along each dimension and
-//returns the index 		Factor: takes an index and sets the number of partials along
-//each dimension
+// returns the index 		Factor: takes an index and sets the number of
+// partials along each dimension
 
 template <typename T>
 struct TensorDerivatives {};
@@ -3713,9 +3714,9 @@ protected:
     //	#warning "you've got me gcc version<5"
     //		template< unsigned int ... FEMSigs >
     //	int _getMatrixRowSize( UIntPack< FEMSigs ... > , const typename
-    //FEMTreeNode::template ConstNeighbors< UIntPack< BSplineOverlapSizes<
-    //FEMSignature< FEMSigs >::Degree >::OverlapSize ... > >& neighbors ) const;
-    //#else // !__GNUC__ || __GNUC__ >=5
+    // FEMTreeNode::template ConstNeighbors< UIntPack< BSplineOverlapSizes<
+    // FEMSignature< FEMSigs >::Degree >::OverlapSize ... > >& neighbors )
+    // const; #else // !__GNUC__ || __GNUC__ >=5
     template <unsigned int... FEMSigs>
     int _getMatrixRowSize(
             const typename FEMTreeNode::template ConstNeighbors<
@@ -4471,7 +4472,8 @@ protected:
     template <unsigned int... SupportSizes>
     struct CornerLoopData {
         typedef UIntPack<SupportSizes...> _SupportSizes;
-        //		static const unsigned int supportSizes[] = { SupportSizes
+        //		static const unsigned int supportSizes[] = {
+        //SupportSizes
         //... };
         static const unsigned int supportSizes[];
         unsigned int ccSize[1 << Dim], pcSize[1 << Dim][1 << Dim];

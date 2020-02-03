@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FORCE_TWO_BYTE_ALIGNMENT 1
 #include "Array.h"
 #include "MyMiscellany.h"
+#include "ThreadPool.h"
 
 #if FORCE_TWO_BYTE_ALIGNMENT
 #pragma pack(push)

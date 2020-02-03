@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 #include "MyMiscellany.h"
+#include "ThreadPool.h"
 
 template <class Real>
 Real Random(void) {
