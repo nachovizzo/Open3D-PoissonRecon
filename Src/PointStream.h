@@ -30,7 +30,6 @@ DAMAGE.
 #define POINT_STREAM_INCLUDED
 
 #include <functional>
-#include "Ply.h"
 #include "Geometry.h"
 
 
@@ -278,65 +277,6 @@ public:
 	BinaryOutputPointStreamWithData( const char* filename , void (*WriteData)( FILE* , const Data& ) );
 	~BinaryOutputPointStreamWithData( void ){ fclose( _fp ) , _fp=NULL; }
 	void reset( void ){ fseek( _fp , SEEK_SET , 0 ); }
-	void nextPoint( const Point< Real , Dim >& p , const Data& d );
-};
-
-template< class Real , unsigned int Dim >
-class PLYInputPointStream : public InputPointStream< Real , Dim >
-{
-	char* _fileName;
-	PlyFile* _ply;
-	std::vector< std::string > _elist;
-
-	size_t _pCount , _pIdx;
-	void _free( void );
-public:
-	PLYInputPointStream( const char* fileName );
-	~PLYInputPointStream( void );
-	void reset( void );
-	bool nextPoint( Point< Real , Dim >& p );
-};
-
-template< class Real , unsigned int Dim , class Data >
-class PLYInputPointStreamWithData : public InputPointStreamWithData< Real , Dim , Data >
-{
-	struct _PlyVertexWithData : public PlyVertex< Real , Dim > { Data data; };
-	char* _fileName;
-	PlyFile* _ply;
-	std::vector< std::string > _elist;
-	PlyProperty* _dataProperties;
-	int _dataPropertiesCount;
-	bool (*_validationFunction)( const bool* );
-
-	size_t _pCount , _pIdx;
-	void _free( void );
-public:
-	PLYInputPointStreamWithData( const char* fileName , const PlyProperty* dataProperties , int dataPropertiesCount , bool (*validationFunction)( const bool* )=NULL );
-	~PLYInputPointStreamWithData( void );
-	void reset( void );
-	bool nextPoint( Point< Real , Dim >& p , Data& d );
-};
-
-template< class Real , unsigned int Dim >
-class PLYOutputPointStream : public OutputPointStream< Real , Dim >
-{
-	PlyFile* _ply;
-	size_t _pCount , _pIdx;
-public:
-	PLYOutputPointStream( const char* fileName , size_t count , int fileType );
-	~PLYOutputPointStream( void );
-	void nextPoint( const Point< Real , Dim >& p );
-};
-
-template< class Real , unsigned int Dim , class Data >
-class PLYOutputPointStreamWithData : public OutputPointStreamWithData< Real , Dim , Data >
-{
-	struct _PlyVertexWithData : public PlyVertex< Real , Dim > { Data data; };
-	PlyFile* _ply;
-	size_t _pCount , _pIdx;
-public:
-	PLYOutputPointStreamWithData( const char* fileName , size_t count , int fileType , const PlyProperty* dataProperties , int dataPropertiesCount );
-	~PLYOutputPointStreamWithData( void );
 	void nextPoint( const Point< Real , Dim >& p , const Data& d );
 };
 
