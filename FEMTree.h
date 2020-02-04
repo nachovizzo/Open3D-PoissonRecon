@@ -3710,20 +3710,12 @@ protected:
                     UIntPack<BSplineOverlapSizes<
                             FEMSignature<FEMSigs>::Degree>::OverlapSize...>>&
                     pNeighbors) const;
-    //#if defined( __GNUC__ ) && __GNUC__ < 5
-    //	#warning "you've got me gcc version<5"
-    //		template< unsigned int ... FEMSigs >
-    //	int _getMatrixRowSize( UIntPack< FEMSigs ... > , const typename
-    // FEMTreeNode::template ConstNeighbors< UIntPack< BSplineOverlapSizes<
-    // FEMSignature< FEMSigs >::Degree >::OverlapSize ... > >& neighbors )
-    // const; #else // !__GNUC__ || __GNUC__ >=5
     template <unsigned int... FEMSigs>
     int _getMatrixRowSize(
             const typename FEMTreeNode::template ConstNeighbors<
                     UIntPack<BSplineOverlapSizes<
                             FEMSignature<FEMSigs>::Degree>::OverlapSize...>>&
                     neighbors) const;
-    //#endif // __GNUC__ || __GNUC__ < 4
     template <typename T, unsigned int... PointDs, unsigned int... FEMSigs>
     T _setMatrixRowAndGetConstraintFromProlongation(
             UIntPack<FEMSigs...>,

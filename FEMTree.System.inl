@@ -1202,22 +1202,12 @@ void FEMTree<Dim, Real>::_solveRegularMG(
     }
 }
 
-//#if defined( __GNUC__ ) && __GNUC__ < 5
-//#warning "you've got me gcc version<5"
-// template< unsigned int Dim , class Real >
-// template< unsigned int ... FEMSigs >
-// int FEMTree< Dim , Real >::_getMatrixRowSize( UIntPack< FEMSigs ... > , const
-// typename FEMTreeNode::template ConstNeighbors< UIntPack< BSplineOverlapSizes<
-// FEMSignature< FEMSigs >::Degree >::OverlapSize ... > >& neighbors ) const
-//#else // !__GNUC__ || __GNUC__ >=5
 template <unsigned int Dim, class Real>
 template <unsigned int... FEMSigs>
 int FEMTree<Dim, Real>::_getMatrixRowSize(
         const typename FEMTreeNode::template ConstNeighbors<
                 UIntPack<BSplineOverlapSizes<FEMSignature<FEMSigs>::Degree>::
-                                 OverlapSize...>>& neighbors) const
-//#endif // __GNUC__ || __GNUC__ < 4
-{
+                                 OverlapSize...>>& neighbors) const {
     typedef UIntPack<
             BSplineOverlapSizes<FEMSignature<FEMSigs>::Degree>::OverlapSize...>
             OverlapSizes;
@@ -2553,14 +2543,8 @@ SparseMatrix<Real, matrix_index_type> FEMTree<Dim, Real>::systemMatrix(
                     neighborKey.getNeighbors(OverlapRadii(), OverlapRadii(),
                                              _sNodes.treeNodes[i], neighbors);
 
-                    //#if defined( __GNUC__ ) && __GNUC__ < 5
-                    //			#warning "you've got me gcc version<5"
-                    //				matrix.setRowSize( ii , _getMatrixRowSize(
-                    //UIntPack< FEMSigs ... >() , neighbors ) ); #else //
-                    //!__GNUC__ || __GNUC__ >=5
                     matrix.setRowSize(ii,
                                       _getMatrixRowSize<FEMSigs...>(neighbors));
-                    //#endif // __GNUC__ || __GNUC__ < 4
                     _setMatrixRowAndGetConstraintFromProlongation(
                             UIntPack<FEMSigs...>(), F, neighbors, neighbors,
                             matrix[ii], _sNodesBegin(depth), stencils, stencil,

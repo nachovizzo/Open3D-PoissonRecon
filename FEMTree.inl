@@ -467,17 +467,6 @@ SparseNodeData<OutData, UIntPack<DataSigs...>> FEMTree<Dim, Real>::setDataField(
                         Allocator<FEMTreeNode>* nodeAllocator =
                                 nodeAllocators.size() ? nodeAllocators[thread]
                                                       : NULL;
-                        //#if defined( __GNUC__ ) && __GNUC__ < 5
-                        //				#warning "you've got me
-                        // gcc
-                        // version<5" 					if( density
-                        // ) AddAtomic( _pointWeightSum , _splatPointData< true
-                        // ,
-                        // true , DensityDegree , OutData
-                        //>( nodeAllocator , *density , p , out , dataField ,
-                        // densityKey , oneKey ? *( (DataKey*)&densityKey ) :
-                        // dataKey , 0 , maxDepth , Dim , depthBias ) *
-                        // sample.weight ); #else // !__GNUC__ || __GNUC__ >=5
                         if (density)
                             AddAtomic(_pointWeightSum,
                                       _splatPointData<true, true, DensityDegree,
@@ -488,24 +477,14 @@ SparseNodeData<OutData, UIntPack<DataSigs...>> FEMTree<Dim, Real>::setDataField(
                                                      : dataKey,
                                               0, maxDepth, Dim, depthBias) *
                                               sample.weight);
-                        //#endif // __GNUC__ || __GNUC__ < 4
                         else {
                             Real width = (Real)(1.0 / (1 << maxDepth));
-                            //#if defined( __GNUC__ ) && __GNUC__ < 5
-                            //					#warning "you've got
-                            //me gcc version<5"
-                            // _splatPointData< true , true , OutData
-                            //>( nodeAllocator , _leaf< true >( nodeAllocator ,
-                            // p , maxDepth ) , p , out / (Real)pow( width , Dim
-                            //) , dataField , oneKey ? *( (DataKey*)&densityKey
-                            //) : dataKey ); #else // !__GNUC__ || __GNUC__ >=5
                             _splatPointData<true, true, OutData, DataSigs...>(
                                     nodeAllocator,
                                     _leaf<true>(nodeAllocator, p, maxDepth), p,
                                     out / (Real)pow(width, Dim), dataField,
                                     oneKey ? *((DataKey*)&densityKey)
                                            : dataKey);
-                            //#endif // __GNUC__ || __GNUC__ < 4
                             AddAtomic(_pointWeightSum, sample.weight);
                         }
                     }

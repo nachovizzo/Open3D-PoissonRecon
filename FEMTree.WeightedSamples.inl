@@ -306,27 +306,16 @@ Real FEMTree<Dim, Real>::_splatPointData(
 
     width = 1.0 / (1 << _localDepth(temp));
     _v = v * weight / Real(pow(width, dim)) * Real(dx);
-    //#if defined( __GNUC__ ) && __GNUC__ < 5
-    //#warning "you've got me gcc version<5"
-    //	_splatPointData< CreateNodes , ThreadSafe , V >( nodeAllocator , temp ,
-    //position , _v , dataInfo , dataKey ); #else // !__GNUC__ || __GNUC__ >=5
     _splatPointData<CreateNodes, ThreadSafe, V, DataSigs...>(
             nodeAllocator, temp, position, _v, dataInfo, dataKey);
-    //#endif // __GNUC__ || __GNUC__ < 4
     if (fabs(1.0 - dx) > 1e-6) {
         dx = Real(1.0 - dx);
         temp = temp->parent;
         width = 1.0 / (1 << _localDepth(temp));
 
         _v = v * weight / Real(pow(width, dim)) * Real(dx);
-        //#if defined( __GNUC__ ) && __GNUC__ < 5
-        //#warning "you've got me gcc version<5"
-        //		_splatPointData< CreateNodes , ThreadSafe , V >(
-        //nodeAllocator , temp , position , _v , dataInfo , dataKey ); #else //
-        //!__GNUC__ || __GNUC__ >=5
         _splatPointData<CreateNodes, ThreadSafe, V, DataSigs...>(
                 nodeAllocator, temp, position, _v, dataInfo, dataKey);
-        //#endif // __GNUC__ || __GNUC__ < 4
     }
     return weight;
 }
