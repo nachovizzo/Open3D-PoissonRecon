@@ -4465,7 +4465,7 @@ protected:
     struct CornerLoopData {
         typedef UIntPack<SupportSizes...> _SupportSizes;
         //		static const unsigned int supportSizes[] = {
-        //SupportSizes
+        // SupportSizes
         //... };
         static const unsigned int supportSizes[];
         unsigned int ccSize[1 << Dim], pcSize[1 << Dim][1 << Dim];

@@ -706,15 +706,9 @@ typename Cube<D>::template Element<K> Cube<D>::Element<K>::antipodal(
 template <unsigned int D>
 template <unsigned int K>
 template <unsigned int _D, unsigned int _K>
-#ifdef _MSC_VER
-typename std::enable_if<(_D > _K) && _K != 0,
-                        typename Cube<D>::Element<K>>::type
-Cube<D>::Element<K>::_antipodal(void) const
-#else   // !_MSC_VER
 typename std::enable_if<(_D > _K) && _K != 0,
                         typename Cube<D>::template Element<K>>::type
 Cube<D>::Element<K>::_antipodal(void) const
-#endif  // _MSC_VER
 {
     Direction dir;
     unsigned int coIndex;
@@ -739,15 +733,9 @@ Cube<D>::Element<K>::_antipodal(void) const
 template <unsigned int D>
 template <unsigned int K>
 template <unsigned int _D, unsigned int _K>
-#ifdef _MSC_VER
-typename std::enable_if<(_D > _K) && _K == 0,
-                        typename Cube<D>::Element<K>>::type
-Cube<D>::Element<K>::_antipodal(void) const
-#else   // !_MSC_VER
 typename std::enable_if<(_D > _K) && _K == 0,
                         typename Cube<D>::template Element<K>>::type
 Cube<D>::Element<K>::_antipodal(void) const
-#endif  // _MSC_VER
 {
     Direction dir;
     unsigned int coIndex;
@@ -767,17 +755,10 @@ Cube<D>::Element<K>::_antipodal(void) const
 template <unsigned int D>
 template <unsigned int K>
 template <unsigned int _D, unsigned int _K>
-#ifdef _MSC_VER
-typename std::enable_if<_D == _K, typename Cube<D>::Element<K>>::type
-Cube<D>::Element<K>::_antipodal(void) const {
-    return *this;
-}
-#else   // !_MSC_VER
 typename std::enable_if<_D == _K, typename Cube<D>::template Element<K>>::type
 Cube<D>::Element<K>::_antipodal(void) const {
     return *this;
 }
-#endif  // _MSC_VER
 
 //////////
 // Cube //
@@ -894,29 +875,16 @@ typename Cube<D>::template IncidentCubeIndex<K> Cube<D>::IncidentCube(
 }
 template <unsigned int D>
 template <unsigned int K, unsigned int _D>
-#ifdef _MSC_VER
-typename std::enable_if<_D == K, typename Cube<D>::IncidentCubeIndex<K>>::type
-Cube<D>::_IncidentCube(Element<K> e) {
-    return IncidentCubeIndex<D>();
-}
-#else   // !_MSC_VER
 typename std::enable_if<_D == K,
                         typename Cube<D>::template IncidentCubeIndex<K>>::type
 Cube<D>::_IncidentCube(Element<K> e) {
     return IncidentCubeIndex<D>();
 }
-#endif  // _MSC_VER
 template <unsigned int D>
 template <unsigned int K, unsigned int _D>
-#ifdef _MSC_VER
-typename std::enable_if<_D != K && _D != 0 && K != 0,
-                        typename Cube<D>::IncidentCubeIndex<K>>::type
-Cube<D>::_IncidentCube(Element<K> e)
-#else   // !_MSC_VER
 typename std::enable_if<_D != K && _D != 0 && K != 0,
                         typename Cube<D>::template IncidentCubeIndex<K>>::type
 Cube<D>::_IncidentCube(Element<K> e)
-#endif  // _MSC_VER
 {
     Direction dir;
     unsigned int coIndex;
@@ -939,15 +907,9 @@ Cube<D>::_IncidentCube(Element<K> e)
 }
 template <unsigned int D>
 template <unsigned int K, unsigned int _D>
-#ifdef _MSC_VER
-typename std::enable_if<_D != K && _D != 0 && K == 0,
-                        typename Cube<D>::IncidentCubeIndex<K>>::type
-Cube<D>::_IncidentCube(Element<K> e)
-#else   // !_MSC_VER
 typename std::enable_if<_D != K && _D != 0 && K == 0,
                         typename Cube<D>::template IncidentCubeIndex<K>>::type
 Cube<D>::_IncidentCube(Element<K> e)
-#endif  // _MSC_VER
 {
     Direction dir;
     unsigned int coIndex;
@@ -1198,28 +1160,15 @@ typename Cube<D>::template Element<K> Cube<D>::IncidentElement(
 }
 template <unsigned int D>
 template <unsigned int K, unsigned int _D>
-#ifdef _MSC_VER
-typename std::enable_if<_D == K, typename Cube<D>::Element<K>>::type
-Cube<D>::_IncidentElement(Element<K> e, IncidentCubeIndex<K> d) {
-    return e;
-}
-#else   // !_MSC_VER
 typename std::enable_if<_D == K, typename Cube<D>::template Element<K>>::type
 Cube<D>::_IncidentElement(Element<K> e, IncidentCubeIndex<K> d) {
     return e;
 }
-#endif  // _MSC_VER
 template <unsigned int D>
 template <unsigned int K, unsigned int _D>
-#ifdef _MSC_VER
-typename std::enable_if<_D != K && _D != 0 && K != 0,
-                        typename Cube<D>::Element<K>>::type
-Cube<D>::_IncidentElement(Element<K> e, IncidentCubeIndex<K> d)
-#else   // !_MSC_VER
 typename std::enable_if<_D != K && _D != 0 && K != 0,
                         typename Cube<D>::template Element<K>>::type
 Cube<D>::_IncidentElement(Element<K> e, IncidentCubeIndex<K> d)
-#endif  // _MSC_VER
 {
     Direction eDir, dDir;
     unsigned int eCoIndex, dCoIndex;
@@ -1250,15 +1199,9 @@ Cube<D>::_IncidentElement(Element<K> e, IncidentCubeIndex<K> d)
 }
 template <unsigned int D>
 template <unsigned int K, unsigned int _D>
-#ifdef _MSC_VER
-typename std::enable_if<_D != K && _D != 0 && K == 0,
-                        typename Cube<D>::Element<K>>::type
-Cube<D>::_IncidentElement(Element<K> e, IncidentCubeIndex<K> d)
-#else   // !_MSC_VER
 typename std::enable_if<_D != K && _D != 0 && K == 0,
                         typename Cube<D>::template Element<K>>::type
 Cube<D>::_IncidentElement(Element<K> e, IncidentCubeIndex<K> d)
-#endif  // _MSC_VER
 {
     Direction eDir, dDir;
     unsigned int eCoIndex, dCoIndex;

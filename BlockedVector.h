@@ -107,15 +107,9 @@ struct BlockedVector {
     size_t resize(size_t size) { return resize(size, _defaultValue); }
     size_t resize(size_t size, const T& defaultValue) {
         if (size <= _size) {
-#ifdef _MSC_VER
             WARN("BlockedVector::resize: new size must be greater than old "
                  "size: ",
                  size, " > ", _size);
-#else   // !MSC_VER
-            WARN("BlockedVector::resize: new size must be greater than old "
-                 "size: ",
-                 size, " > ", _size);
-#endif  // _MSC_VER
             return _size;
         }
         size_t index = size - 1;

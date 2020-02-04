@@ -2131,19 +2131,6 @@ void FEMTree<Dim, Real>::_setPointValuesFromProlongedSolution(
                                     interpolationInfo[pIndex];
                             neighborKey.getNeighbors(
                                     _sNodes.treeNodes[i]->parent);
-#ifdef _MSC_VER
-                            pData.dualValues =
-                                    interpolationInfo(
-                                            pIndex,
-                                            _coarserFunctionValues<PointD, T,
-                                                                   FEMSigs...>(
-                                                    UIntPack<FEMSigs...>(),
-                                                    pData.position, neighborKey,
-                                                    _sNodes.treeNodes[i],
-                                                    bsData,
-                                                    prolongedSolution)) *
-                                    pData.weight;
-#else   // !_MSC_VER
                             pData.dualValues =
                                     interpolationInfo(
                                             pIndex,
@@ -2154,7 +2141,6 @@ void FEMTree<Dim, Real>::_setPointValuesFromProlongedSolution(
                                                     bsData,
                                                     prolongedSolution)) *
                                     pData.weight;
-#endif  // _MSC_VER
                         }
                     }
                 }
@@ -2217,21 +2203,6 @@ void FEMTree<Dim, Real>::_updateRestrictedInterpolationConstraints(
                             Point<Real, Dim> p = pData.position;
                             bsData.initEvaluationState(p, d, off, peState);
 
-#ifdef _MSC_VER
-                            CumulativeDerivativeValues<T, Dim, PointD>
-                                    dualValues =
-                                            interpolationInfo(
-                                                    pIndex,
-                                                    _finerFunctionValues<
-                                                            PointD, T,
-                                                            FEMSigs...>(
-                                                            UIntPack<
-                                                                    FEMSigs...>(),
-                                                            pData.position,
-                                                            neighborKey, node,
-                                                            bsData, solution)) *
-                                            pData.weight;
-#else   // !_MSC_VER
                             CumulativeDerivativeValues<T, Dim, PointD>
                                     dualValues =
                                             interpolationInfo(
@@ -2244,8 +2215,8 @@ void FEMTree<Dim, Real>::_updateRestrictedInterpolationConstraints(
                                                             neighborKey, node,
                                                             bsData, solution)) *
                                             pData.weight;
-#endif  // _MSC_VER
-        // Update constraints for all nodes @( depth-1 ) that overlap the point
+                            // Update constraints for all nodes @( depth-1 )
+                            // that overlap the point
                             int s[Dim];
                             WindowLoop<Dim>::Run(
                                     ZeroUIntPack<Dim>(), SupportSizes(),
@@ -4933,19 +4904,8 @@ double FEMTree<Dim, Real>::_dot(
                                                     UIntPack<Degrees2...>(),
                                                     node, start, end);
 
-#ifdef __clang__
-#pragma message("[WARNING] You've got me clang")
-                            std::function<void(int, int)> updateFunction =
-                                    [](int, int) {};
-#endif  // __clang__
-
                             WindowLoop<Dim>::Run(
-                                    start, end,
-#ifdef __clang__
-                                    updateFunction,
-#else   // !__clang__
-                                    [&](int, int) { ; },
-#endif  // __clang__
+                                    start, end, [&](int, int) { ; },
                                     [&](const FEMTreeNode* node,
                                         Point<double, 1> stencilValue) {
                                         if (_isValidFEM2Node(node)) {
